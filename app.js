@@ -62,8 +62,10 @@ mqttClient.on("connect", () => {
 
 mqttClient.on("message", (topic, payload) => {
   console.log("RX", topic, payload);
+
   const data = new Uint8Array(payload);
-  const dv = new DataView(payload.buffer);
+  const dv = new DataView(data.buffer, data.byteOffset, data.byteLength);
+
   if (dv.getUint8(0) !== PKT_HEADER) return;
 
   const type = dv.getUint8(1);
@@ -72,6 +74,7 @@ mqttClient.on("message", (topic, payload) => {
   else if (type === CMD.BATT_INFO_FRAME) parseBatteryDetail(dv);
   else if (type === CMD.DEVICE_ADDR_FRAME) parseDeviceAddress(dv);
 });
+
 
 /********************************
  * PAGE DETECT
