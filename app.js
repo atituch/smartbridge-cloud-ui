@@ -184,34 +184,77 @@ function initBatteryList() {
 }
 
 function parseStatus(dv) {
-  console.log("SOC raw =", dv.getUint8(2));
-  console.log("Voltage raw =", dv.getUint16(3, true));
+    if (!batteryEls.length) return;
+    let i = 2;
+    const soc = dv.getUint8(i++);
+    const packV = dv.getUint16(i, true) / 100; i += 2;
+    const packI = dv.getInt16(i, true) / 10; i += 2;
 
-  if (!batteryEls.length) return;
+    const maxCellV = dv.getUint16(i, true) / 1000; i += 2;
+    const minCellV = dv.getUint16(i, true) / 1000; i += 2;
+    const maxBMST = dv.getInt8(i++);
+    const maxCellT = dv.getInt8(i++);
 
-  let i = 2;
-  const soc = dv.getUint8(i++);
-  const packV = dv.getUint16(i, true) / 100; i += 2;
-  const packI = dv.getInt16(i, true) / 10; i += 2;
+    /* Pack SOC */
+    const socEl = document.getElementById("soc");
+    socEl.innerText = soc + "%";
+    socEl.classList.remove("soc-green", "soc-yellow", "soc-red");
 
-  document.getElementById("soc").innerText = soc + "%";
-  document.getElementById("voltage").innerText = packV.toFixed(2) + "V";
-  document.getElementById("current").innerText = packI.toFixed(1) + "A";
+    if (soc >= 50) socEl.classList.add("soc-green");
+    else if (soc >= 30) socEl.classList.add("soc-yellow");
+    else socEl.classList.add("soc-red");
 
-  for (let n = 0; n < MAX_BATTERY_MODULE; n++) {
-    const v = dv.getUint16(i, true) / 100; i += 2;
-    const c = dv.getInt16(i, true) / 10; i += 2;
-    const bs = dv.getUint8(i++); i++;
+    const fg = document.querySelector(".fg");
+    fg.style.stroke =
+        soc >= 50 ? "#3cff5a" :
+            soc >= 30 ? "#ffd000" :
+                "#ff4c4c";
 
-    const el = batteryEls[n];
-    el.querySelector(".bv").innerText = v.toFixed(2);
-    el.querySelector(".bc").innerText = c.toFixed(1);
-    el.querySelector(".bs").innerText = bs;
+    fg.style.strokeDashoffset = 502 - soc * 5.02;
 
-    const bar = el.querySelector(".soc-bar");
-    bar.style.width = bs + "%";
-    bar.className = "soc-bar " + socClass(bs);
-  }
+    /* Pack info */
+    document.getElementById("voltage").innerText = packV.toFixed(2) + "V";
+    //document.getElementById("current").innerText = packI.toFixed(1) + "A";
+    const currEl = document.getElementById("current");
+    // reset classes
+    currEl.classList.remove("current-pos", "current-neg", "current-idle");
+    // set text + arrow + color
+    if (packI > 0) {
+        currEl.innerText = `${packI.toFixed(1)}A ↑`;
+        currEl.classList.add("current-pos");
+    } else if (packI < 0) {
+        currEl.innerText = `${packI.toFixed(1)}A ↓`;
+        currEl.classList.add("current-neg");
+    } else {
+        currEl.innerText = `0.0A —`;
+        currEl.classList.add("current-idle");
+    }
+
+
+    document.getElementById("maxCellV").innerText = maxCellV.toFixed(3) + "V";
+    document.getElementById("minCellV").innerText = minCellV.toFixed(3) + "V";
+    document.getElementById("maxBMSTemp").innerText = maxBMST + "°C";
+    document.getElementById("maxCellTemp").innerText = maxCellT + "°C";
+
+    /* Battery Module List */
+   for (let n = 0; n < MAX_BATTERY_MODULE; n++) {
+        const v = dv.getUint16(i, true) / 100; i += 2;
+        const c = dv.getInt16(i, true) / 10; i += 2;
+        const bs = dv.getUint8(i++);
+        i++;
+
+        const el = batteryEls[n];
+        if (!el) continue;
+
+        el.querySelector(".bv").innerText = v.toFixed(2);
+        el.querySelector(".bc").innerText = c.toFixed(1);
+        el.querySelector(".bs").innerText = bs;
+
+        const bar = el.querySelector(".soc-bar");
+        bar.style.width = bs + "%";
+        bar.className = "soc-bar " + socClass(bs);
+    }
+
 }
 
 /********************************
