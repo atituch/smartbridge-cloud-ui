@@ -5,9 +5,6 @@ const MQTT_URL = "wss://c7abeea905dd4cddb3fea5f06b9e0405.s1.eu.hivemq.cloud:8884
 const MQTT_USER = "smartbridge";
 const MQTT_PASS = "Atituch168";
 
-/* Device ID ต้องตรงกับที่ ESP32 ใช้ publish */
-const DEVICE_ID = "SmartBridge-23C0";
-
 /********************************
  * PROTOCOL CONST
  ********************************/
@@ -42,7 +39,13 @@ const mqttClient = mqtt.connect(MQTT_URL, {
 });
 
 /********************************
- * GLOBAL STATE
+ * MULTI DEVICE STATE
+ ********************************/
+const devices = {};
+let activeDevice = null;
+
+/********************************
+ * UI STATE
  ********************************/
 let statusTimer = null;
 let battPollTimer = null;
@@ -55,36 +58,44 @@ let cellEls = [];
 mqttClient.on("connect", () => {
   console.log("MQTT connected");
 
-  mqttClient.subscribe(`smartbridge/${DEVICE_ID}/status`);
-  mqttClient.subscribe(`smartbridge/${DEVICE_ID}/battery/+`);
-  mqttClient.subscribe(`smartbridge/${DEVICE_ID}/device`);
+  mqttClient.subscribe("smartbridge/+/status");
+  mqttClient.subscribe("smartbridge/+/battery/+");
+  mqttClient.subscribe("smartbridge/+/device");
 });
 
 mqttClient.on("message", (topic, payload) => {
-  console.log("RX", topic, payload);
-  const data = new Uint8Array(payload);
-  const dv = new DataView(data.buffer, data.byteOffset, data.byteLength);
+  const parts = topic.split("/");
+  if (parts.length < 3) return;
+
+  const deviceId = parts[1];
+  const channel  = parts[2];
+
+  if (!devices[deviceId]) {
+    devices[deviceId] = { lastSeen: Date.now() };
+    if (!activeDevice) activeDevice = deviceId;
+  }
+
+  devices[deviceId].lastSeen = Date.now();
+
+  if (deviceId !== activeDevice) return;
+
+  const dv = new DataView(payload.buffer, payload.byteOffset, payload.byteLength);
   if (dv.getUint8(0) !== PKT_HEADER) return;
+
   const type = dv.getUint8(1);
+
   if (type === CMD.STATUS_FRAME) parseStatus(dv);
   else if (type === CMD.BATT_INFO_FRAME) parseBatteryDetail(dv);
   else if (type === CMD.DEVICE_ADDR_FRAME) parseDeviceAddress(dv);
   else if (type === CMD.SCAN_FRAME) parseScan(dv);
 });
 
-
 /********************************
  * PAGE DETECT
  ********************************/
-function isIndexPage() {
-  return location.pathname.endsWith("/") || location.pathname.endsWith("index.html");
-}
-function isBatteryPage() {
-  return location.pathname.endsWith("battery.html");
-}
-function isSettingPage() {
-  return location.pathname.endsWith("setting.html");
-}
+function isIndexPage()   { return location.pathname.endsWith("/") || location.pathname.endsWith("index.html"); }
+function isBatteryPage() { return location.pathname.endsWith("battery.html"); }
+function isSettingPage() { return location.pathname.endsWith("setting.html"); }
 
 /********************************
  * VISIBILITY HANDLING
@@ -110,35 +121,31 @@ function startStatusPoll() {
 }
 
 function stopStatusPoll() {
-  if (statusTimer) {
-      clearInterval(statusTimer);
-      statusTimer = null;
-  }
+  clearInterval(statusTimer);
+  statusTimer = null;
 }
 
 function startBattPoll() {
   if (battPollTimer) return;
   battPollTimer = setInterval(() => {
-    sendCmd([
-      PKT_HEADER,
-      CMD.CMD_GET_BATT_DETAIL,
-      getBatteryIndex()
-    ]);
+    sendCmd([PKT_HEADER, CMD.CMD_GET_BATT_DETAIL, getBatteryIndex()]);
   }, 1000);
 }
 
 function stopBattPoll() {
-  if (battPollTimer) {
-      clearInterval(battPollTimer);
-      battPollTimer = null;
-    }
+  clearInterval(battPollTimer);
+  battPollTimer = null;
 }
 
 /********************************
- * SEND COMMAND (BINARY)
+ * SEND COMMAND
  ********************************/
 function sendCmd(arr) {
-  mqttClient.publish(`smartbridge/${DEVICE_ID}/cmd`, new Uint8Array(arr));
+  if (!activeDevice) return;
+  mqttClient.publish(
+    `smartbridge/${activeDevice}/cmd`,
+    new Uint8Array(arr)
+  );
 }
 
 /********************************
@@ -228,12 +235,10 @@ function parseStatus(dv) {
         currEl.classList.add("current-idle");
     }
 
-
     document.getElementById("maxCellV").innerText = maxCellV.toFixed(3) + "V";
     document.getElementById("minCellV").innerText = minCellV.toFixed(3) + "V";
     document.getElementById("maxBMSTemp").innerText = maxBMST + "°C";
     document.getElementById("maxCellTemp").innerText = maxCellT + "°C";
-
     /* Battery Module List */
    for (let n = 0; n < MAX_BATTERY_MODULE; n++) {
         const v = dv.getUint16(i, true) / 100; i += 2;
@@ -258,34 +263,33 @@ function parseStatus(dv) {
 /********************************
  * SETTING PAGE
  ********************************/
-// parse scan frame
 function parseScan(dv) {
-    const id = dv.getUint8(2);
-    const prog = dv.getUint8(3);
-
-    console.log("Parsing scan frame", id, prog);
-
-    const txt = document.getElementById("scanText");
-    const bar = document.getElementById("scanBar");
-
-    if (txt) txt.innerText = "Scanning Battery ID " + id;
-    if (bar) bar.style.width = prog + "%";
+  const txt = document.getElementById("scanText");
+  const bar = document.getElementById("scanBar");
+  if (txt) txt.innerText = "Scanning Battery ID " + dv.getUint8(2);
+  if (bar) bar.style.width = dv.getUint8(3) + "%";
 }
 
-// start scan
 function startScan() {
     sendCmd([PKT_HEADER, CMD.SCAN_START]);
 }
 
-// save Wi-Fi settings
+function saveDeviceAddr() {
+  sendCmd([PKT_HEADER, CMD.SAVE_DEVICE_ADDR, Number(deviceAddr.value)]);
+  alert("Device address saved");
+}
+
+function parseDeviceAddress(dv) {
+  const el = document.getElementById("deviceAddr");
+  if (el) el.value = dv.getUint8(2);
+}
+
 function saveWifi() {
     const s = ssid.value;
     const p = pass.value;
-
     const enc = new TextEncoder();
     const sb = enc.encode(s);
     const pb = enc.encode(p);
-
     const buf = new Uint8Array(4 + sb.length + pb.length);
     let i = 0;
 
@@ -295,34 +299,8 @@ function saveWifi() {
     buf.set(sb, i); i += sb.length;
     buf[i++] = pb.length;
     buf.set(pb, i);
-
-    //ws.send(buf);
-    //mqttClient.publish(`smartbridge/${DEVICE_ID}/cmd`, buf);
     sendCmd(buf);
     alert("Wi-Fi saved");
-}
-
-// save device address
-function saveDeviceAddr() {
-    const addr = Number(deviceAddr.value);
-
-    const buf = new Uint8Array(3);
-    buf[0] = PKT_HEADER;
-    buf[1] = CMD.SAVE_DEVICE_ADDR;
-    buf[2] = addr & 0xFF;
-    //ws.send(buf);
-    //mqttClient.publish(`smartbridge/${DEVICE_ID}/cmd`, buf);
-    sendCmd(buf);
-    alert("Device address saved");
-}
-
-// parse device address frame
-function parseDeviceAddress(dv) {
-    const addr = dv.getUint8(2);
-    const deviceAddrEl = document.getElementById("deviceAddr");
-    if (deviceAddrEl) {
-        deviceAddrEl.value = addr;
-    }
 }
 
 /********************************
@@ -332,7 +310,6 @@ function initCellList() {
   const list = document.getElementById("cellList");
   cellEls = [];
   list.innerHTML = "";
-
   for (let i = 0; i < MAX_CELLS_PER_MODULE; i++) {
     const d = document.createElement("div");
     d.className = "cell";
@@ -342,12 +319,9 @@ function initCellList() {
 }
 
 function parseBatteryDetail(dv) {
-
-    // 🔐 guard
     if (!cellEls.length) return;
 
     let i = 2;
-
     const battNo = dv.getUint8(i++) + 1;
     const soc = dv.getUint8(i++);
     const volt = dv.getUint16(i, true) / 100; i += 2;
@@ -356,12 +330,11 @@ function parseBatteryDetail(dv) {
     const cellT = dv.getInt8(i++);
     const soh = dv.getUint8(i++);
     const cycle = dv.getUint16(i, true); i += 2;
-
-    // ---- header fields (เหมือนเดิม) ----
+    // update UI
     document.getElementById("title").innerText = `Battery Status ${battNo}`;
     document.getElementById("soc").innerText = soc + "%";
     document.getElementById("voltage").innerText = volt.toFixed(2) + "V";
-    //document.getElementById("current").innerText = curr.toFixed(1) + "A";
+
     const currEl = document.getElementById("current");
     currEl.innerText = curr.toFixed(1) + "A";
     // reset class
@@ -377,7 +350,6 @@ function parseBatteryDetail(dv) {
     document.getElementById("cellTemp").innerText = cellT + "°C";
     document.getElementById("soh").innerText = soh + "%";
     document.getElementById("cycle").innerText = cycle;
-
     // ---- read all cells voltage ----
     const cellVolt = [];
 
@@ -385,25 +357,21 @@ function parseBatteryDetail(dv) {
         cellVolt[c] = dv.getUint16(i, true) / 1000;
         i += 2;
     }
-
     // find max / min + first index found
     let maxV = -Infinity, minV = Infinity;
     let maxIdx = -1, minIdx = -1;
 
     for (let c = 0; c < cellVolt.length; c++) {
         const v = cellVolt[c];
-
         if (v > maxV) {
             maxV = v;
             maxIdx = c;
         }
-
         if (v < minV) {
             minV = v;
             minIdx = c;
         }
     }
-
     // update UI
     for (let c = 0; c < MAX_CELLS_PER_MODULE; c++) {
         const el = cellEls[c];
@@ -413,32 +381,19 @@ function parseBatteryDetail(dv) {
         el.innerText = `Cell ${c + 1}: ${v.toFixed(3)} V`;
         // reset max/min classes
         el.classList.remove("max", "min");
-
         if (c === maxIdx) {
             el.classList.add("max");   // 🔵 สูงสุดตัวแรก
         } else if (c === minIdx) {
             el.classList.add("min");   // 🔴 ต่ำสุดตัวแรก
         }
     }
-
 }
-
 
 /********************************
  * INIT ON LOAD
  ********************************/
 window.addEventListener("load", () => {
-  if (isIndexPage()) {
-    initBatteryList();
-    startStatusPoll();
-  }
-
-  if (isBatteryPage()) {
-    initCellList();
-    startBattPoll();
-  }
-
-  if (isSettingPage()) {
-    sendCmd([PKT_HEADER, CMD.GET_DEVICE_ADDR]);
-  }
+  if (isIndexPage())   { initBatteryList(); startStatusPoll(); }
+  if (isBatteryPage()) { initCellList();    startBattPoll(); }
+  if (isSettingPage()) sendCmd([PKT_HEADER, CMD.GET_DEVICE_ADDR]);
 });
