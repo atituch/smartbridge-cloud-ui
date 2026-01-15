@@ -69,7 +69,7 @@ mqttClient.on("message", (topic, payload) => {
   if (type === CMD.STATUS_FRAME) parseStatus(dv);
   else if (type === CMD.BATT_INFO_FRAME) parseBatteryDetail(dv);
   else if (type === CMD.DEVICE_ADDR_FRAME) parseDeviceAddress(dv);
-  else if (type === CMD.DEVICE_ADDR_FRAME) parseDeviceAddress(dv);
+  else if (type === CMD.SCAN_FRAME) parseScan(dv);
 });
 
 
