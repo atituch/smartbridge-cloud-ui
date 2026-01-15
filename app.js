@@ -113,8 +113,10 @@ function startStatusPoll() {
 }
 
 function stopStatusPoll() {
-  clearInterval(statusTimer);
-  statusTimer = null;
+  if (statusTimer) {
+      clearInterval(statusTimer);
+      statusTimer = null;
+  }
 }
 
 function startBattPoll() {
@@ -129,8 +131,10 @@ function startBattPoll() {
 }
 
 function stopBattPoll() {
-  clearInterval(battPollTimer);
-  battPollTimer = null;
+  if (battPollTimer) {
+      clearInterval(battPollTimer);
+      battPollTimer = null;
+    }
 }
 
 /********************************
@@ -274,24 +278,87 @@ function initCellList() {
 }
 
 function parseBatteryDetail(dv) {
-  if (!cellEls.length) return;
 
-  let i = 2;
-  const battNo = dv.getUint8(i++) + 1;
-  const soc = dv.getUint8(i++);
-  const volt = dv.getUint16(i, true) / 100; i += 2;
-  const curr = dv.getInt16(i, true) / 10; i += 2;
+    // 🔐 guard
+    if (!cellEls.length) return;
 
-  document.getElementById("title").innerText = `Battery ${battNo}`;
-  document.getElementById("soc").innerText = soc + "%";
-  document.getElementById("voltage").innerText = volt.toFixed(2) + "V";
-  document.getElementById("current").innerText = curr.toFixed(1) + "A";
+    let i = 2;
 
-  for (let c = 0; c < MAX_CELLS_PER_MODULE; c++) {
-    const v = dv.getUint16(i, true) / 1000; i += 2;
-    cellEls[c].innerText = `Cell ${c + 1}: ${v.toFixed(3)} V`;
-  }
+    const battNo = dv.getUint8(i++) + 1;
+    const soc = dv.getUint8(i++);
+    const volt = dv.getUint16(i, true) / 100; i += 2;
+    const curr = dv.getInt16(i, true) / 10; i += 2;
+    const bmsT = dv.getInt8(i++);
+    const cellT = dv.getInt8(i++);
+    const soh = dv.getUint8(i++);
+    const cycle = dv.getUint16(i, true); i += 2;
+
+    // ---- header fields (เหมือนเดิม) ----
+    document.getElementById("title").innerText = `Battery Status ${battNo}`;
+    document.getElementById("soc").innerText = soc + "%";
+    document.getElementById("voltage").innerText = volt.toFixed(2) + "V";
+    //document.getElementById("current").innerText = curr.toFixed(1) + "A";
+    const currEl = document.getElementById("current");
+    currEl.innerText = curr.toFixed(1) + "A";
+    // reset class
+    currEl.classList.remove("current-pos", "current-neg");
+    // apply color
+    if (curr < 0) {
+        currEl.classList.add("current-neg");
+    } else {
+        currEl.classList.add("current-pos");
+    }
+
+    document.getElementById("bmsTemp").innerText = bmsT + "°C";
+    document.getElementById("cellTemp").innerText = cellT + "°C";
+    document.getElementById("soh").innerText = soh + "%";
+    document.getElementById("cycle").innerText = cycle;
+
+    // ---- read all cells voltage ----
+    const cellVolt = [];
+
+    for (let c = 0; c < MAX_CELLS_PER_MODULE; c++) {
+        cellVolt[c] = dv.getUint16(i, true) / 1000;
+        i += 2;
+    }
+
+    // find max / min + first index found
+    let maxV = -Infinity, minV = Infinity;
+    let maxIdx = -1, minIdx = -1;
+
+    for (let c = 0; c < cellVolt.length; c++) {
+        const v = cellVolt[c];
+
+        if (v > maxV) {
+            maxV = v;
+            maxIdx = c;
+        }
+
+        if (v < minV) {
+            minV = v;
+            minIdx = c;
+        }
+    }
+
+    // update UI
+    for (let c = 0; c < MAX_CELLS_PER_MODULE; c++) {
+        const el = cellEls[c];
+        if (!el) continue;
+
+        const v = cellVolt[c];
+        el.innerText = `Cell ${c + 1}: ${v.toFixed(3)} V`;
+        // reset max/min classes
+        el.classList.remove("max", "min");
+
+        if (c === maxIdx) {
+            el.classList.add("max");   // 🔵 สูงสุดตัวแรก
+        } else if (c === minIdx) {
+            el.classList.add("min");   // 🔴 ต่ำสุดตัวแรก
+        }
+    }
+
 }
+
 
 /********************************
  * INIT ON LOAD
