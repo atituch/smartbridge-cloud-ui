@@ -61,6 +61,7 @@ mqttClient.on("connect", () => {
 });
 
 mqttClient.on("message", (topic, payload) => {
+  console.log("RX", topic, payload);
   const dv = new DataView(payload.buffer);
   if (dv.getUint8(0) !== PKT_HEADER) return;
 
