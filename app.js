@@ -62,16 +62,13 @@ mqttClient.on("connect", () => {
 
 mqttClient.on("message", (topic, payload) => {
   console.log("RX", topic, payload);
-
   const data = new Uint8Array(payload);
   const dv = new DataView(data.buffer, data.byteOffset, data.byteLength);
-
   if (dv.getUint8(0) !== PKT_HEADER) return;
-
   const type = dv.getUint8(1);
-
   if (type === CMD.STATUS_FRAME) parseStatus(dv);
   else if (type === CMD.BATT_INFO_FRAME) parseBatteryDetail(dv);
+  else if (type === CMD.DEVICE_ADDR_FRAME) parseDeviceAddress(dv);
   else if (type === CMD.DEVICE_ADDR_FRAME) parseDeviceAddress(dv);
 });
 
@@ -141,10 +138,7 @@ function stopBattPoll() {
  * SEND COMMAND (BINARY)
  ********************************/
 function sendCmd(arr) {
-  mqttClient.publish(
-    `smartbridge/${DEVICE_ID}/cmd`,
-    new Uint8Array(arr)
-  );
+  mqttClient.publish(`smartbridge/${DEVICE_ID}/cmd`, new Uint8Array(arr));
 }
 
 /********************************
@@ -259,6 +253,74 @@ function parseStatus(dv) {
         bar.className = "soc-bar " + socClass(bs);
     }
 
+}
+
+/********************************
+ * SETTING PAGE
+ ********************************/
+// parse scan frame
+function parseScan(dv) {
+    const id = dv.getUint8(2);
+    const prog = dv.getUint8(3);
+
+    const txt = document.getElementById("scanText");
+    const bar = document.getElementById("scanBar");
+
+    if (txt) txt.innerText = "Scanning Battery ID " + id;
+    if (bar) bar.style.width = prog + "%";
+}
+
+// start scan
+function startScan() {
+    sendCmd([PKT_HEADER, CMD.SCAN_START]);
+}
+
+// save Wi-Fi settings
+function saveWifi() {
+    const s = ssid.value;
+    const p = pass.value;
+
+    const enc = new TextEncoder();
+    const sb = enc.encode(s);
+    const pb = enc.encode(p);
+
+    const buf = new Uint8Array(4 + sb.length + pb.length);
+    let i = 0;
+
+    buf[i++] = PKT_HEADER;
+    buf[i++] = CMD.WIFI_SAVE;
+    buf[i++] = sb.length;
+    buf.set(sb, i); i += sb.length;
+    buf[i++] = pb.length;
+    buf.set(pb, i);
+
+    //ws.send(buf);
+    //mqttClient.publish(`smartbridge/${DEVICE_ID}/cmd`, buf);
+    sendCmd(buf);
+    alert("Wi-Fi saved");
+}
+
+// save device address
+function saveDeviceAddr() {
+    const addr = Number(deviceAddr.value);
+
+    const buf = new Uint8Array(3);
+    buf[0] = PKT_HEADER;
+    buf[1] = CMD.SAVE_DEVICE_ADDR;
+    buf[2] = addr & 0xFF;
+    //ws.send(buf);
+    //mqttClient.publish(`smartbridge/${DEVICE_ID}/cmd`, buf);
+    sendCmd(buf);
+    alert("Device address saved");
+}
+
+// parse device address frame
+function parseDeviceAddress(dv) {
+    const addr = dv.getUint8(2);
+    const deviceAddrEl = document.getElementById("deviceAddr");
+    if (deviceAddrEl) {
+        deviceAddrEl.value = addr;
+    }
 }
 
 /********************************
