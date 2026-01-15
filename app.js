@@ -66,8 +66,6 @@ mqttClient.on("message", (topic, payload) => {
   const data = new Uint8Array(payload);
   const dv = new DataView(data.buffer, data.byteOffset, data.byteLength);
 
-  //console.log("dv.getUint8(0)",dv.getUint8(0));
-
   if (dv.getUint8(0) !== PKT_HEADER) return;
 
   const type = dv.getUint8(1);
