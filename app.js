@@ -263,6 +263,8 @@ function parseScan(dv) {
     const id = dv.getUint8(2);
     const prog = dv.getUint8(3);
 
+    console.log("Parsing scan frame", id, prog);
+
     const txt = document.getElementById("scanText");
     const bar = document.getElementById("scanBar");
 
