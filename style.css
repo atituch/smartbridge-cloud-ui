@@ -1,0 +1,327 @@
+﻿* {
+    box-sizing: border-box;
+    font-family: system-ui;
+}
+
+body {
+    margin: 0;
+    background: #0f0f0f;
+    color: #fff;
+}
+
+.app {
+    max-width: 420px;
+    margin: auto;
+    padding: 12px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.gear, .back {
+    color: white;
+    font-size: 22px;
+    text-decoration: none;
+}
+
+/* SOC circle */
+.soc-container {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+.soc-circle {
+    position: relative;
+    width: 180px;
+    height: 180px;
+}
+/*
+.soc-value {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 42px;
+    font-weight: bold;
+}
+*/
+/* ตัวเลข SOC ใหญ่ */
+.soc-value {
+    position: absolute;
+    top: 48%; /* ⬅ กลางวง */
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 42px;
+    font-weight: 700;
+    z-index: 2;
+}
+
+/* ข้อความ SOC */
+.soc-label {
+    position: absolute;
+    top: 63%; /* ⬅ เลื่อนลง */
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 14px;
+    color: #aaa;
+    z-index: 1;
+}
+
+.soc-green {
+    color: #3cff5a;
+}
+
+.soc-yellow {
+    color: #ffd000;
+}
+
+.soc-red {
+    color: #ff4c4c;
+}
+
+svg {
+    width: 180px;
+    height: 180px;
+    /*transform: rotate(90deg)*/
+    transform: rotate(-90deg);
+}
+
+circle {
+    fill: none;
+    stroke-width: 12;
+}
+
+.bg {
+    stroke: #333;
+}
+
+/*
+.fg {
+    stroke: #3cff5a;
+    stroke-dasharray: 502;
+    stroke-dashoffset: 502;
+    transition: .4s;
+}
+*/
+
+.fg {
+    fill: none;
+    stroke: #3cff5a;
+    stroke-width: 10;
+    stroke-linecap: round;
+    stroke-dasharray: 502;
+    stroke-dashoffset: 502;
+    transition: stroke 0.3s ease;
+}
+
+
+.soc-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.soc-text span {
+    font-size: 36px;
+    color: #3cff5a;
+}
+
+/* info */
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  margin: 10px 0;
+}
+
+.info span {
+  font-size: 20px;
+  /* ตัวหนา */
+  /*font-weight: 600;*/
+  font-weight: bold;
+}
+
+.voltage span { color: #4cc3ff; }
+/*
+.current span { color: #ffd000; }
+*/
+
+/* max min cell and temp */
+.card-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.card {
+  flex: 1;
+  background: #1c1c1c;
+  padding: 10px;
+  border-radius: 12px;
+  font-size: 16px;
+}
+
+
+.blue {
+    color: #4cc3ff;
+}
+
+.red {
+    color: #ff4c4c;
+}
+
+.yellow {
+    color: #ffd000;
+}
+
+.value-strong {
+    font-weight: 700;
+    font-size: 1.05em;
+}
+
+
+/* battery */
+.battery {
+    background: #1c1c1c;
+    border-radius: 14px;
+    padding: 10px;
+    margin-top: 8px;
+    cursor: pointer;
+}
+
+.soc-bar-bg {
+    background: #333;
+    border-radius: 10px;
+    height: 10px;
+    overflow: hidden;
+}
+
+.soc-bar {
+    height: 100%;
+}
+
+/* setting */
+.card {
+    background: #1c1c1c;
+    border-radius: 14px;
+    padding: 14px;
+    margin-top: 14px;
+}
+
+button {
+    margin-top: 12px;
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    background: #3aaaff;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+input {
+    width: 100%;
+    padding: 10px;
+    margin: 6px 0 10px;
+    border-radius: 8px;
+    border: none;
+}
+
+.progress-bg {
+    background: #333;
+    border-radius: 10px;
+    height: 14px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background: #3cff5a;
+    width: 0%;
+}
+
+/* เพิ่มสี soc bar */
+.soc-bar-bg {
+    width: 100%;
+    height: 8px;
+    background: #222;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+.soc-bar {
+    height: 100%;
+    transition: width 0.4s linear, background-color 0.3s;
+}
+
+.soc-high {
+    background: #00ff6a;
+}
+
+.soc-mid {
+    background: #ffd000;
+}
+
+.soc-low {
+    background: #ff9f00;
+}
+
+.soc-critical {
+    background: #ff3b3b;
+}
+
+/* battery info page */
+.batt-info div {
+  background:#1c1c1c;
+  padding:8px;
+  border-radius:8px;
+  margin-bottom:6px;
+}
+
+.cell {
+  background:#1c1c1c;
+  color: #4cff7a; /* green */
+  padding:6px;
+  border-radius:6px;
+  margin-bottom:4px;
+}
+
+.cell.max {
+    color: #4cc3ff;
+    font-weight: bold;
+}
+
+.cell.min {
+    color: #ff4c4c;
+    font-weight: bold;
+}
+
+.current-pos {
+    color: #3cff5a;   /* เขียว */
+    font-weight: bold;
+}
+
+.current-neg {
+    color: #ff4c4c;   /* แดง */
+    font-weight: bold;
+}
+
+.current-idle {
+    color: #aaa;      /* เทา */
+    font-weight: bold;
+}
+
+#current {
+    transition: color 0.2s ease;
+}
+
+
+

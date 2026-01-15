@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>System Status</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="app">
+        <div class="header">
+            <h2>System Status</h2>
+            <a class="gear" href="setting.html">⚙️</a>
+        </div>
+
+        <div class="soc-container">
+            <div class="soc-circle">
+                <svg>
+                    <circle class="bg" cx="90" cy="90" r="80" />
+                    <circle class="fg" cx="90" cy="90" r="80" />
+                </svg>
+                <div class="soc-text">
+                    <div id="soc" class="soc-value soc-green">--%</div>
+                    <div class="soc-label">SOC</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pack Voltage / Current -->
+        <div class="info-row">
+            <div class="info voltage">
+                <label>VOLTAGE</label>
+                <span id="voltage">--.-V</span>
+            </div>
+            <div class="info current">
+                <label>CURRENT</label>
+                <span id="current">--.-A</span>
+            </div>
+        </div>
+
+        <!-- Max,Min Cell and Temp 
+        <div class="card-row">
+            <div class="card">
+                <p>Max.Cell Voltage</p>
+                <span id="maxCellV" class="blue">--</span>
+                <p>Min.Cell Voltage</p>
+                <span id="minCellV" class="red">--</span>
+            </div>
+
+            <div class="card">
+                <p>Max.BMS Temp</p>
+                <span id="maxBMSTemp" class="yellow">--</span>
+                <p>Max.Cell Temp</p>
+                <span id="maxCellTemp" class="yellow">--</span>
+            </div>
+        </div> -->
+        <!-- Max,Min Cell and Temp -->
+        <div class="card-row">
+            <div class="card">
+                <p>Max.Cell Voltage</p>
+                <span id="maxCellV" class="blue value-strong">--</span>
+
+                <p>Min.Cell Voltage</p>
+                <span id="minCellV" class="red value-strong">--</span>
+            </div>
+
+            <div class="card">
+                <p>Max.BMS Temp</p>
+                <span id="maxBMSTemp" class="yellow value-strong">--</span>
+
+                <p>Max.Cell Temp</p>
+                <span id="maxCellTemp" class="yellow value-strong">--</span>
+            </div>
+        </div>
+
+        <!-- Battery list -->
+        <div id="batteryList"></div>
+    </div>
+
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

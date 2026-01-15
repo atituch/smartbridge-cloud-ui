@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Battery Status</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app">
+  <h2 id="title">Battery Status</h2>
+
+  <div class="batt-info">
+    <div>SOC: <span id="soc">--%</span></div>
+    <div>Voltage: <span id="voltage">--</span></div>
+    <div>Current: <span id="current">--</span></div>
+    <div>BMS Temp: <span id="bmsTemp">--</span></div>
+    <div>Cell Temp: <span id="cellTemp">--</span></div>
+    <div>SOH: <span id="soh">--%</span></div>
+    <div>Cycle: <span id="cycle">--</span></div>
+  </div>
+
+  <h3>Cell Voltage</h3>
+  <div id="cellList"></div>
+
+  <button onclick="history.back()">⬅ Back</button>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

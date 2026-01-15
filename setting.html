@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Setting</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <a class="back" href="index.html">←</a>
+    <h2>Setting</h2>
+  </div>
+
+  <div class="card">
+    <h3>Search Battery ID</h3>
+    <button onclick="startScan()">SEARCH</button>
+    <p id="scanText">Idle</p>
+    <div class="progress-bg">
+      <div class="progress-bar" id="scanBar"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Wi-Fi Setting</h3>
+
+    <label>Wi-Fi SSID</label>
+    <input id="ssid" type="text">
+
+    <label>Wi-Fi Password</label>
+    <input id="pass" type="password">
+
+    <button onclick="saveWifi()">SAVE</button>
+  </div>
+
+  <div class="card">
+    <h3>Set Device Address</h3>
+
+    <label>Device Address</label>
+    <select id="deviceAddr">
+      <option value="2">0x02</option>
+      <option value="18">0x12</option>
+      <option value="34">0x22</option>
+      <option value="50">0x32</option>
+      <option value="66">0x42</option>
+    </select>
+
+    <button onclick="saveDeviceAddr()">SAVE</button>
+  </div>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
