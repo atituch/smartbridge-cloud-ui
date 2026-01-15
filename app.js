@@ -184,6 +184,9 @@ function initBatteryList() {
 }
 
 function parseStatus(dv) {
+  console.log("SOC raw =", dv.getUint8(2));
+  console.log("Voltage raw =", dv.getUint16(3, true));
+
   if (!batteryEls.length) return;
 
   let i = 2;
