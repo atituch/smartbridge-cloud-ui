@@ -1,11 +1,20 @@
 ﻿/********************************
+ * AUTH CHECK
+ ********************************/
+const USER_ID = localStorage.getItem("USER_ID");
+
+if (!USER_ID) {
+  if (!location.pathname.endsWith("login.html")) {
+    location.href = "login.html";
+  }
+}
+
+/********************************
  * MQTT CONFIG (CLOUD)
  ********************************/
 const MQTT_URL = "wss://c7abeea905dd4cddb3fea5f06b9e0405.s1.eu.hivemq.cloud:8884/mqtt";
 const MQTT_USER = "smartbridge";
 const MQTT_PASS = "Atituch168";
-
-const USER_ID = "demo"; // 🔒 hardcode ไปก่อน
 
 /********************************
  * PROTOCOL CONST

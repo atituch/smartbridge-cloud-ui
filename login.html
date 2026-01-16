@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Login</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="app">
+        <h2>SmartBridge Login</h2>
+
+        <input id="user" placeholder="User ID">
+        <button onclick="login()">Login</button>
+    </div>
+    <script>
+        function login() {
+            const u = document.getElementById("user").value.trim();
+            if (!u) return alert("Enter user");
+
+            localStorage.setItem("USER_ID", u);
+            location.href = "index.html";
+        }
+    </script>
+
+</body>
+
+</html>
