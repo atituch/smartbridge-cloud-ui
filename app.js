@@ -43,6 +43,8 @@ const mqttClient = mqtt.connect(MQTT_URL, {
  ********************************/
 const devices = {};
 let activeDevice = null;
+const DEVICE_TIMEOUT_MS = 5000;
+let deviceSelectEl = null;
 
 /********************************
  * UI STATE
@@ -73,6 +75,7 @@ mqttClient.on("message", (topic, payload) => {
 
   if (!devices[deviceId]) {
     devices[deviceId] = { lastSeen: Date.now() };
+    updateDeviceDropdown(); 
     if (!activeDevice) activeDevice = deviceId;
   }
 
@@ -139,6 +142,14 @@ function stopBattPoll() {
 }
 
 /********************************
+ * PERIODIC DEVICE CLEANUP
+ ********************************/
+setInterval(() => {
+  updateDeviceDropdown();
+}, 2000);
+
+
+/********************************
  * SEND COMMAND
  ********************************/
 function sendCmd(arr) {
@@ -166,6 +177,39 @@ function getBatteryIndex() {
 /********************************
  * INDEX PAGE
  ********************************/
+function updateDeviceDropdown() {
+  if (!deviceSelectEl) return;
+
+  const now = Date.now();
+  const onlineDevices = Object.keys(devices)
+    .filter(id => now - devices[id].lastSeen < DEVICE_TIMEOUT_MS);
+
+  // ลบ device ที่ offline
+  Object.keys(devices).forEach(id => {
+    if (!onlineDevices.includes(id)) {
+      delete devices[id];
+      if (id === activeDevice) activeDevice = null;
+    }
+  });
+
+  // rebuild dropdown
+  deviceSelectEl.innerHTML = "";
+
+  onlineDevices.forEach(id => {
+    const opt = document.createElement("option");
+    opt.value = id;
+    opt.textContent = id;
+    deviceSelectEl.appendChild(opt);
+  });
+
+  // auto select ตัวแรก
+  if (!activeDevice && onlineDevices.length) {
+    activeDevice = onlineDevices[0];
+  }
+
+  deviceSelectEl.value = activeDevice ?? "";
+}
+
 function initBatteryList() {
   const list = document.getElementById("batteryList");
   batteryEls = [];
@@ -393,8 +437,51 @@ function parseBatteryDetail(dv) {
 /********************************
  * INIT ON LOAD
  ********************************/
+/*
 window.addEventListener("load", () => {
   if (isIndexPage())   { initBatteryList(); startStatusPoll(); }
   if (isBatteryPage()) { initCellList();    startBattPoll(); }
   if (isSettingPage()) sendCmd([PKT_HEADER, CMD.GET_DEVICE_ADDR]);
 });
+*/
+
+window.addEventListener("load", () => {
+
+  /********************************
+   * INDEX PAGE
+   ********************************/
+  if (isIndexPage()) {
+    // init device dropdown
+    deviceSelectEl = document.getElementById("deviceSelect");
+
+    if (deviceSelectEl) {
+      deviceSelectEl.addEventListener("change", () => {
+        activeDevice = deviceSelectEl.value;
+
+        // reset UI for new device
+        initBatteryList();
+      });
+    }
+
+    // init UI
+    initBatteryList();
+    startStatusPoll();
+  }
+
+  /********************************
+   * BATTERY DETAIL PAGE
+   ********************************/
+  if (isBatteryPage()) {
+    initCellList();
+    startBattPoll();
+  }
+
+  /********************************
+   * SETTING PAGE
+   ********************************/
+  if (isSettingPage()) {
+    // request device address of current device
+    sendCmd([PKT_HEADER, CMD.GET_DEVICE_ADDR]);
+  }
+});
+
