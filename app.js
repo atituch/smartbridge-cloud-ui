@@ -64,6 +64,7 @@ mqttClient.on("connect", () => {
 });
 
 mqttClient.on("message", (topic, payload) => {
+  console.log("MQTT message:", topic, payload);
   const parts = topic.split("/");
   if (parts.length < 3) return;
 
