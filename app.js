@@ -5,6 +5,8 @@ const MQTT_URL = "wss://c7abeea905dd4cddb3fea5f06b9e0405.s1.eu.hivemq.cloud:8884
 const MQTT_USER = "smartbridge";
 const MQTT_PASS = "Atituch168";
 
+const USER_ID = "demo"; // 🔒 hardcode ไปก่อน
+
 /********************************
  * PROTOCOL CONST
  ********************************/
@@ -60,34 +62,46 @@ let cellEls = [];
 mqttClient.on("connect", () => {
   console.log("MQTT connected");
 
-  mqttClient.subscribe("smartbridge/+/status");
-  mqttClient.subscribe("smartbridge/+/battery/+");
-  mqttClient.subscribe("smartbridge/+/device");
+  //mqttClient.subscribe("smartbridge/+/status");
+  //mqttClient.subscribe("smartbridge/+/battery/+");
+  //mqttClient.subscribe("smartbridge/+/device");
+  mqttClient.subscribe(`smartbridge/user/${USER_ID}/device/+/status`);
+  mqttClient.subscribe(`smartbridge/user/${USER_ID}/device/+/battery/+`);
+  mqttClient.subscribe(`smartbridge/user/${USER_ID}/device/+/device`);
 });
 
 mqttClient.on("message", (topic, payload) => {
   console.log("MQTT message:", topic, payload);
   const parts = topic.split("/");
-  if (parts.length < 3) return;
+  //if (parts.length < 3) return;
+  //const deviceId = parts[1];
 
-  const deviceId = parts[1];
-  const channel  = parts[2];
-
+  // smartbridge/user/{user}/device/{deviceId}/...
+  if (
+    parts.length < 6 ||
+    parts[0] !== "smartbridge" ||
+    parts[1] !== "user" ||
+    parts[3] !== "device"
+  ) return;
+  const userId   = parts[2];
+  const deviceId = parts[4];
+  //const channel  = parts[5]; // status | device | scan | battery
+  // register device 
   if (!devices[deviceId]) {
     devices[deviceId] = { lastSeen: Date.now() };
     updateDeviceDropdown(); 
     if (!activeDevice) activeDevice = deviceId;
   }
-
   devices[deviceId].lastSeen = Date.now();
-
+  // process only active device
   if (deviceId !== activeDevice) return;
 
-  const dv = new DataView(payload.buffer, payload.byteOffset, payload.byteLength);
+  //const dv = new DataView(payload.buffer, payload.byteOffset, payload.byteLength);
+  const data = new Uint8Array(payload);
+  const dv = new DataView(data.buffer);
   if (dv.getUint8(0) !== PKT_HEADER) return;
 
   const type = dv.getUint8(1);
-
   if (type === CMD.STATUS_FRAME) parseStatus(dv);
   else if (type === CMD.BATT_INFO_FRAME) parseBatteryDetail(dv);
   else if (type === CMD.DEVICE_ADDR_FRAME) parseDeviceAddress(dv);
@@ -154,8 +168,12 @@ setInterval(() => {
  ********************************/
 function sendCmd(arr) {
   if (!activeDevice) return;
+  //mqttClient.publish(
+  //  `smartbridge/${activeDevice}/cmd`,
+  //  new Uint8Array(arr)
+  //);
   mqttClient.publish(
-    `smartbridge/${activeDevice}/cmd`,
+    `smartbridge/user/${USER_ID}/device/${activeDevice}/cmd`,
     new Uint8Array(arr)
   );
 }
